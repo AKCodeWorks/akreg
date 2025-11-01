@@ -5,15 +5,17 @@ import { execSync } from "child_process";
 import { argv, exit, stdin, stdout } from "process";
 import readline from "readline";
 
-type ComponentSchema = {
-  name: string;
-  components: {
-    url: string;
-    name: string;
-    deps?: string[];
-    "dev-deps"?: string[];
-  }[];
+const BASE_URL =
+  "https://raw.githubusercontent.com/AKCodeWorks/akui/refs/heads/main/src/registry";
+const REGISTRY_URL = `${BASE_URL}/registry.json`;
+
+type RegistryEntry = {
+  deps?: string[];
+  "dev-deps"?: string[];
+  components: { file: string }[];
 };
+
+type Registry = Record<string, RegistryEntry>;
 
 async function detectPackageManager(): Promise<"npm" | "pnpm" | "yarn" | "bun"> {
   if (process.env.npm_execpath?.includes("pnpm")) return "pnpm";
@@ -25,52 +27,57 @@ async function detectPackageManager(): Promise<"npm" | "pnpm" | "yarn" | "bun"> 
 function ask(question: string): Promise<boolean> {
   const rl = readline.createInterface({ input: stdin, output: stdout });
   return new Promise((resolve) => {
-    rl.question(`${question} (y/N): `, (answer) => {
+    rl.question(`${question} (y/N): `, (ans) => {
       rl.close();
-      resolve(/^y(es)?$/i.test(answer.trim()));
+      resolve(/^y(es)?$/i.test(ans.trim()));
     });
   });
 }
 
 async function main(): Promise<void> {
-  const remoteJsonUrl = argv[2];
-  if (!remoteJsonUrl) {
-    console.error("Usage: ts-node get-components.ts <remote-json-url>");
+  const componentKey = argv[2];
+  if (!componentKey) {
+    console.error("Usage: ts-node get-components.ts <component-key>");
     exit(1);
   }
 
-  console.log(`Fetching schema from: ${remoteJsonUrl}`);
-  const res = await fetch(remoteJsonUrl);
+  console.log(`Fetching registry from: ${REGISTRY_URL}`);
+  const res = await fetch(REGISTRY_URL);
   if (!res.ok) {
-    console.error("Failed to fetch schema.");
+    console.error("Failed to fetch registry file.");
     exit(1);
   }
 
-  const schema: ComponentSchema = await res.json();
-  const baseDir = path.resolve("src/lib/components/akui", schema.name);
-  mkdirSync(baseDir, { recursive: true });
+  const registry: Registry = await res.json();
+  const entry = registry[componentKey];
+  if (!entry) {
+    console.error(`Component "${componentKey}" not found in registry.`);
+    exit(1);
+  }
 
-  for (const c of schema.components) {
-    const targetDir = path.join(baseDir, c.name);
-    mkdirSync(targetDir, { recursive: true });
+  const targetDir = path.resolve("src/lib/components/akui", componentKey);
+  mkdirSync(targetDir, { recursive: true });
 
-    console.log(`Fetching ${c.name}...`);
-    const resp = await fetch(c.url);
+  for (const c of entry.components) {
+    const rawUrl = `${BASE_URL}/${c.file}`;
+    const fileName = path.basename(c.file);
+    const dest = path.join(targetDir, fileName);
+
+    console.log(`Fetching ${rawUrl}`);
+    const resp = await fetch(rawUrl);
     if (!resp.ok) {
-      console.error(`Failed to fetch ${c.url}`);
+      console.error(`Failed to fetch ${rawUrl}`);
       continue;
     }
 
-    const fileContent = await resp.text();
-    const targetPath = path.join(targetDir, `${c.name}.svelte`);
-    writeFileSync(targetPath, fileContent, "utf8");
-    console.log(`Created ${targetPath}`);
+    const content = await resp.text();
+    writeFileSync(dest, content, "utf8");
+    console.log(`Created ${dest}`);
   }
 
-  // Dependency handling
   const pkgManager = await detectPackageManager();
-  const deps = schema.components.flatMap((c) => c.deps || []);
-  const devDeps = schema.components.flatMap((c) => c["dev-deps"] || []);
+  const deps = entry.deps || [];
+  const devDeps = entry["dev-deps"] || [];
 
   if (deps.length || devDeps.length) {
     const confirm = await ask(
@@ -96,7 +103,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log("All components fetched successfully.");
+  console.log(`✅ Installed component "${componentKey}" successfully.`);
 }
 
 main().catch((err) => {

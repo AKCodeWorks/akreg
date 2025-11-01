@@ -1,0 +1,16 @@
+{
+  "accordion": {
+    "deps": [
+      "bits-ui"
+    ],
+    "dev-deps": [],
+    "components": [
+      {
+        "file": "accordion/accordion.svelte"
+      },
+      {
+        "file": "accordion/accordion-dep.svelte"
+      }
+    ]
+  }
+}
