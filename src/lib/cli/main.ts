@@ -13,7 +13,7 @@ import { defaultConfig, type AkuiConfig } from "./utilities/default-config.js";
 async function main(): Promise<void> {
   const componentKey = process.argv[2];
   if (!componentKey) {
-    console.error("Invalid component: Component does not exist in the registry provided.");
+    console.error("No component key provided. Usage: akui <component-key>");
     process.exit(1);
   }
 
