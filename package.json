@@ -9,7 +9,7 @@
 		"access": "public"
 	},
 	"bin": {
-		"akui": "./dist/cli/main.js"
+		"akreg": "./dist/cli/main.js"
 	},
 	"scripts": {
 		"build": "rm -rf dist && tsc -p tsconfig.cli.json && rm -f ./*.tgz && npm pack",
@@ -57,6 +57,6 @@
 	"keywords": [
 		"cli",
 		"svelte",
-		"akui"
+		"akreg"
 	]
 }
