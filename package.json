@@ -2,6 +2,12 @@
 	"name": "akui",
 	"version": "0.1.0",
 	"type": "module",
+	"author": {
+		"name": "AKCodeWorks"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"bin": {
 		"akui": "./dist/cli/main.js"
 	},
