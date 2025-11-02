@@ -4,6 +4,7 @@ import { ask } from "./ask.js";
 import type { AkuiConfig } from "./default-config.js";
 import { extractAkuiVersion } from "./extract-akui-version.js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function installRegistryDep(depName: string, registry: any, config: AkuiConfig) {
   const entry = registry[depName];
   if (!entry) {

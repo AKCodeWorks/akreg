@@ -76,14 +76,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // --- registryDeps check (inserted section) ---
+
   if (entry.registryDeps && entry.registryDeps.length) {
     console.log("\nChecking registry dependencies...\n");
     for (const depName of entry.registryDeps) {
       await installRegistryDep(depName, registry, config);
     }
   }
-  // --------------------------------------------
+
 
   const targetDir = path.resolve(installDir, componentKey);
   mkdirSync(targetDir, { recursive: true });
