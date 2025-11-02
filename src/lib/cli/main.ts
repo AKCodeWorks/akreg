@@ -2,95 +2,42 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
 import path from "path";
 import { execSync } from "child_process";
-import readline from "readline";
+import { ask, detectPackageManager, extractAkuiVersion, getInstalledDeps, parseDepString, versionSatisfies } from "./utilities/index.js";
+import { injectAkuiComment } from "./utilities/inject-akui-comment.js";
+import { getAkuiConfig } from "./utilities/check-config.js";
+import { mergeConfig } from "./utilities/merge-config.js";
+import { defaultConfig, type AkuiConfig } from "./utilities/default-config.js";
 
-const BASE_URL =
-  "https://raw.githubusercontent.com/AKCodeWorks/akui/refs/heads/main/src/registry";
-const REGISTRY_URL = `${BASE_URL}/registry.json`;
 
-function detectPackageManager(): "npm" | "pnpm" | "yarn" | "bun" {
-  const cwd = process.cwd();
-  switch (true) {
-    case existsSync(path.join(cwd, "pnpm-lock.yaml")):
-      return "pnpm";
-    case existsSync(path.join(cwd, "yarn.lock")):
-      return "yarn";
-    case existsSync(path.join(cwd, "bun.lockb")):
-      return "bun";
-    case existsSync(path.join(cwd, "package-lock.json")):
-      return "npm";
-    default:
-      return "npm";
-  }
-}
-
-function ask(question: string): Promise<boolean> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  return new Promise((resolve) => {
-    rl.question(`${question} (y/N): `, (ans) => {
-      rl.close();
-      resolve(/^y(es)?$/i.test(ans.trim()));
-    });
-  });
-}
-
-function getInstalledDeps(): Record<string, string> {
-  const pkgPath = path.resolve("package.json");
-  if (!existsSync(pkgPath)) return {};
-  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
-  return {
-    ...pkg.dependencies,
-    ...pkg.devDependencies
-  };
-}
-
-function parseDepString(dep: string): { name: string; version?: string } {
-  if (!dep.includes("@") || (dep.startsWith("@") && dep.indexOf("@", 1) === -1)) {
-    return { name: dep };
-  }
-  const atIndex = dep.lastIndexOf("@");
-  const name = dep.slice(0, atIndex);
-  const version = dep.slice(atIndex + 1);
-  return { name, version };
-}
-
-function versionSatisfies(installed: string, required?: string): boolean {
-  if (!required) return true;
-  const clean = (v: string) => v.replace(/[^0-9.]/g, "");
-  const [a, b] = [clean(installed), clean(required)];
-  if (!a || !b) return false;
-  return a.localeCompare(b, undefined, { numeric: true }) >= 0;
-}
-
-function extractAkuiVersion(content: string): string | null {
-  const regex = /AKUI_VERSION:\s*([\w.]+)/i;
-  const match = content.match(regex);
-  return match ? match[1] : null;
-}
-
-function injectAkuiComment(fileName: string, content: string, version: string): string {
-  const header =
-    fileName.endsWith(".svelte")
-      ? `<!-- AKUI_VERSION: ${version} DO NOT DELETE OR YOUR FILE WILL BE OVERWRITTEN ON UPDATE! -->`
-      : `// AKUI_VERSION: ${version} DO NOT DELETE OR YOUR FILE WILL BE OVERWRITTEN ON UPDATE!`;
-  const cleaned = content.replace(/^\uFEFF/, "").trimStart();
-  return `${header}\n${cleaned}`;
-}
 
 async function main(): Promise<void> {
   const componentKey = process.argv[2];
   if (!componentKey) {
-    console.error("Usage: tsx get-components.ts <component-key>");
+    console.error("Invalid component: Component does not exist in the registry provided.");
     process.exit(1);
   }
 
+  const userConfig = await getAkuiConfig()
+
+  let config: AkuiConfig
+
+  if (!userConfig) {
+    const proceed = await ask(`\nAn invalid or missing akui.config file was detected. Would you like to proceed with the default configuration? (You can create a custom akui.config.js file later to override these settings.)`)
+    if (!proceed) throw new Error("Aborted due to missing akui.config file.")
+    config = defaultConfig
+  } else {
+    config = await mergeConfig(defaultConfig, userConfig)
+  }
+
+  const { installDir, registryUrl, registryDir, registryComponentDir } = config
+
+  const REGISTRY_URL = `${registryUrl}/${registryDir}`
+
   console.log(`Fetching registry from: ${REGISTRY_URL}`);
+
   const res = await fetch(REGISTRY_URL);
   if (!res.ok) {
-    console.error("Failed to fetch registry file.");
+    console.error("Failed to fetch registry file. Check your network connection and/or make sure your registry url is correct if using a custom config.");
     process.exit(1);
   }
 
@@ -103,7 +50,8 @@ async function main(): Promise<void> {
     }
   >;
 
-  for (const [key, entry] of Object.entries(registry)) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for (const [_, entry] of Object.entries(registry)) {
     entry.components = entry.components.map((c) => ({
       ...c,
       version: c.version !== undefined ? String(c.version) : "UNTRACKED"
@@ -116,14 +64,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const targetDir = path.resolve("src/lib/components/akui", componentKey);
+  const targetDir = path.resolve(installDir, componentKey);
   mkdirSync(targetDir, { recursive: true });
 
   const updated: string[] = [];
   const skipped: string[] = [];
 
   for (const c of entry.components) {
-    const rawUrl = `${BASE_URL}/${c.file}`;
+
+    const rawUrl = `${registryUrl}/${registryComponentDir}/${c.file}`;
     const fileName = path.basename(c.file);
     const dest = path.join(targetDir, fileName);
     const remoteVersion = c.version ?? "UNTRACKED";

@@ -6,7 +6,8 @@
 		"akui": "./dist/cli/main.js"
 	},
 	"scripts": {
-		"build": "tsc -p tsconfig.cli.json",
+		"build": "rm -rf dist && tsc -p tsconfig.cli.json && rm -f ./*.tgz && npm pack",
+		"pack": "npm pack",
 		"dev": "vite dev"
 	},
 	"files": [

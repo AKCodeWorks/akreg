@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Button from '../registry/button/button.svelte';
+	import Button from '$lib/components/akui/button/button.svelte';
 </script>
 
 <div class="flex w-full items-center">
-	<Button>Yeet</Button>
+	<Button onLeftClick={() => console.log('on left click')}>Yeet</Button>
 </div>
