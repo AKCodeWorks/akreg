@@ -1,7 +1,9 @@
 <script lang="ts">
-	import Button from '$lib/components/akui/button/button.svelte';
+	import RemoteCode from '../registry/remote-code/remote-code.svelte';
+	import github from 'svelte-highlight/styles/github';
+	import githubDark from 'svelte-highlight/styles/github-dark';
 </script>
 
-<div class="flex w-full items-center">
-	<Button onLeftClick={() => console.log('on left click')}>Yeet</Button>
+<div class=" p-4">
+	<RemoteCode theme={github} darkTheme={githubDark} />
 </div>

@@ -22,5 +22,17 @@
         "version": "0.01"
       }
     ]
+  },
+  "remote-code": {
+    "deps": [
+      "svelte-highlight@^7.9.0"
+    ],
+    "dev-deps": [],
+    "components": [
+      {
+        "file": "remote-code/remote-code.svelte",
+        "version": "0.01"
+      }
+    ]
   }
 }
