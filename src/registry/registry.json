@@ -26,14 +26,53 @@
       }
     ]
   },
-  "remote-code": {
+  "code": {
     "deps": [
       "svelte-highlight@^7.9.0"
     ],
     "dev-deps": [],
     "components": [
       {
-        "file": "remote-code/remote-code.svelte",
+        "file": "code/code.svelte",
+        "version": "0.01"
+      },
+      {
+        "file": "code/code.types.ts",
+        "version": "0.01"
+      },
+      {
+        "file": "code/code.utils.svelte",
+        "version": "0.01"
+      },
+      {
+        "file": "code/index.ts",
+        "version": "0.01"
+      }
+    ]
+  },
+  "doc": {
+    "deps": [
+      "bits-ui",
+      "ak"
+    ],
+    "registryDeps": [
+      "code"
+    ],
+    "components": [
+      {
+        "file": "doc/doc.svelte",
+        "version": "0.01"
+      },
+      {
+        "file": "doc/doc.types.ts",
+        "version": "0.01"
+      },
+      {
+        "file": "doc/doc.utils.svelte",
+        "version": "0.01"
+      },
+      {
+        "file": "doc/index.ts",
         "version": "0.01"
       }
     ]

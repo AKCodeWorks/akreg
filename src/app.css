@@ -204,6 +204,9 @@ body {
 	h5 {
 		@apply text-base font-semibold;
 	}
+	code {
+		@apply rounded bg-muted px-1 py-0.5 text-sm *:font-mono;
+	}
 }
 
 @layer utilities {
